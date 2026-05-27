@@ -33,358 +33,414 @@ CREATE TABLE IF NOT EXISTS votes (
 conn.commit()
 
 def calculate_score(answers):
-   raw = sum(answers)
-   max_score = len(answers) * 10
-   score = int((raw / max_score) * 100)
+   score = int((sum(answers) / (len(answers) * 10)) * 100)
+   
    if score <= 30:
-       category = "Standard"
+       category = "The Observer"
    elif score <= 60:
-       category = "Rising"
+       category = "The Strategist"
    elif score <= 85:
-       category = "Trending"
+       category = "The Influencer"
    else:
-       category = "Premium"
+       category = "The Visionary"
 
    return score, category
 
 def get_slogan(category):
-   if category == "Standard":
-       return "Starting strong. Future in motion."
-   elif category == "Rising":
-       return "Growing fast. Built different."
-   elif category == "Trending":
-       return "Popular, sharp, unstoppable."
-   elif category == "Premium":
-       return "Elite presence. Top tier energy."
-   return "Unique profile."
+   return {
+       "The Observer": "Quiet minds notice everything.",
+       "The Strategist": "Built to think ahead.",
+       "The Influencer": "Energy people naturally follow.",
+       "The Visionary": "Elite confidence. Powerful presence."
+   }.get(category, "")
+
+
+def get_personality_description(category):
+   return {
+       "The Observer": "Analytical, calm, and thoughtful under pressure.",
+       "The Strategist": "Smart decision-maker with leadership qualities.",
+       "The Influencer": "Social, charismatic, and naturally respected.",
+       "The Visionary": "Highly ambitious with strong confidence and presence."
+   }.get(category, "")
+
 
 def main(page: ft.Page):
    page.title = "YOU™"
+   page.theme_mode = ft.ThemeMode.DARK
+   page.bgcolor = "#0f172a"
    page.scroll = "auto"
-   page.theme_mode = "dark"
    page.window_width = 430
    page.window_height = 850
+   page.padding = 20
+
+   def modern_button(text, click):
+       return ft.ElevatedButton(
+           text,
+           width=250,
+           height=55,
+           style=ft.ButtonStyle(
+               bgcolor="#06b6d4",
+               color="black",
+               shape=ft.RoundedRectangleBorder(radius=15),
+               text_style=ft.TextStyle(size=18, weight="bold")
+           ),
+           on_click=click
+       )
+
    def render_home():
        page.controls.clear()
+
        page.add(
            ft.Container(
                expand=True,
                alignment=ft.alignment.center,
-               content=ft.Column(
-                   [
-                       ft.Text("YOU™", size=40, weight="bold"),
-                       ft.Text(
-                           "Your value. Your image. Your power.",
-                           italic=True,
-                           color="cyan",
-                           size=16
+               content=ft.Container(
+                   width=380,
+                   padding=30,
+                   border_radius=25,
+                   bgcolor="#111827",
+                   shadow=ft.BoxShadow(spread_radius=1, blur_radius=25,
+color="#000000"),
+                   content=ft.Column(
+                       [
 
-                       ),
-                       ft.ElevatedButton(
-                           "Start Profile",
-                           width=220,
-                           on_click=lambda e: render_form()
+                           ft.Icon(ft.Icons.PSYCHOLOGY, size=70, color="#06b6d4"),
+                           ft.Text("YOU™", size=42, weight="bold", color="white"),
+                           ft.Text(
+                               "Your value. Your image. Your power.",
+                               italic=True,
+                               color="#67e8f9",
+                               size=16
+                           ),
+                           modern_button("Start Profile", lambda e: render_form()),
+                           modern_button("Leaderboard", lambda e: 
+render_leaderboard()),
+                           modern_button("Vote", lambda e: render_vote()),
+                           modern_button("Admin Panel", lambda e: render_admin())
+                       ],
 
-                       ),
-                       ft.ElevatedButton(
-                           "Leaderboard",
-                           width=220,
-                           on_click=lambda e: render_leaderboard()
-                       ),
+                       spacing=20,
 
-                       ft.ElevatedButton(
-                           "Vote", 
-                           width=220,
-                           on_click=lambda e: render_vote()
-                       )
-                   ],
-                   spacing=18,
-
-                   alignment=ft.MainAxisAlignment.CENTER,
-                   horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-            
-               )
+                       alignment=ft.MainAxisAlignment.CENTER,
+                       horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                    )
+                )
            )
-       )
+       )     
        page.update()
+
    def render_form():
-       page.controls.clear()
-       name_input = ft.TextField(label="Name")
-       age_input = ft.TextField(label="Age")
+     page.controls.clear()
 
-       def create_question(title, options):
-           return ft.RadioGroup(
-               content=ft.Column([
-                   ft.Text(title, weight="bold"),
-                   *[ft.Radio(value=str(points), label=label) 
-                     for label, points in options]
-               ])
-           )
+     name_input = ft.TextField(label="Name", border_radius=15)
+     age_input = ft.TextField(label="Age", border_radius=15)
 
-       questions = [
-           create_question("How do you act under pressure?", [("Stay calm",10),("Stress",7),("Panic",4)]),
-           create_question("How social are you?", [("Very social",10),("Balanced",7),("Introverted",4)]),
-           create_question("Decision style", [("Fast",10),("Think first",7),("Indecisive",4)]),
-           create_question("Risk level", [("High",10),("Medium",7),("Low",4)]),
-           create_question("Work style", [("Leader",10),("Team",7),("Solo",6)]),
-           create_question("Energy level", [("High",10),("Medium",7),("Low",4)])
-       ]
 
-       result_text = ft.Text()
-       def submit(e):
-           if not name_input.value or not age_input.value:
-               result_text.value = "⚠️ Fill all fields"
-               page.update()
-               return
-           
-           if not age_input.value.isdigit():
-              result_text.value = "⚠️ Age must be a number"
-              page.update()
-              return
 
-           age = int(age_input.value)
-
-           if age < 1 or age > 100:
-              result_text.value = "⚠️ Error: age must be between 1 and 100"
-              page.update()
-              return
-
-           if any(q.value is None for q in questions):
-               result_text.value = "⚠️ Answer all questions"
-               page.update()
-               return
-
-           answers = [int(q.value) for q in questions]
-           score, category = calculate_score(answers)
-           try:
-               cursor.execute(
-                   "INSERT INTO users (name, age) VALUES (?, ?)",
-                   (name_input.value, age)
-               )
-               user_id = cursor.lastrowid
-           except sqlite3.IntegrityError:
-               cursor.execute(
-                   "SELECT id FROM users WHERE name = ?", (name_input.value,))
-               user_id = cursor.fetchone()[0]
-
-           cursor.execute("DELETE FROM results WHERE user_id = ?", (user_id,))
-           cursor.execute(
-               "INSERT INTO results (user_id, score, category) VALUES (?, ?, ?)",
-               (user_id, score, category)
-           )
-
-           conn.commit()
-
-           if category == "Standard":
-            msg = "You're just getting started."
-           elif category == "Rising":
-            msg = "You're improving fast."
-           elif category == "Trending":
-            msg = "You're doing really well."
-           else:
-            msg = "You're top tier."
-
-           result_text.value = (
-               f"🔥 Score: {score} | {category}\n"
-               f"{get_slogan(category)}"
-)
-
-           page.update()
-
-       page.add(
-           ft.Container(
-               content=ft.Column([
-                   ft.Text("Create Profile", size=24),
-                   name_input,
-                   age_input,
-                   *questions,
-                   ft.Row([
-                       ft.ElevatedButton("Submit", on_click=submit),
-                       ft.OutlinedButton("Back", on_click=lambda e: render_home())
-                   ]),
-                   result_text
-               ]),
-               padding=20
-           )
-       )
-
-   def render_vote():
-      page.controls.clear()
-
-      cursor.execute("""
-          SELECT users.id, users.name
-          FROM users
-          ORDER BY name
-      """)
-      users = cursor.fetchall()
-
-      voter_name = ft.TextField(label="Your Name")
-      details_box = ft.Container(
-          visible=False,
-          padding=15,
-          width=360,
-          border_radius=15,
-          bgcolor="#1e1e1e"
-      )
-
-      selected_user = ft.Dropdown(
-          label="Vote for",
-          width=320
-      )
-
-      for u in users:
-          selected_user.options.append(
-              ft.dropdown.Option(str(u[0]), u[1])
+     def create_question(title, options):
+          return ft.RadioGroup(
+             content=ft.Container(
+                 padding=15,
+                 border_radius=15,
+                 bgcolor="#111827",
+                 content=ft.Column([
+                     ft.Text(title, weight="bold", size=16),
+                     *[
+                        ft.Radio(value=str(points), label=label)
+                        for label, points in options
+                    ]
+                 ])
+             )
           )
 
-      result_text = ft.Text()
-      def show_details(e):
+        questions = [
+         create_question("How do you act under pressure?", [("Stay calm",10),("Stress",7),("Panic",4)]),
+         create_question("How social are you?", [("Very social",10),("Balanced",7),("Introverted",4)]),
+         create_question("Decision style", [("Fast",10),("Think first",7),("Indecisive",4)]),
+         create_question("Risk level", [("High",10),("Medium",7),("Low",4)]),
+         create_question("Work style", [("Leader",10),("Team",7),("Solo",6)]),
+         create_question("Energy level", [("High",10),("Medium",7),("Low",4)])
+       ]
+
+result_text = ft.Text()
+
+     def submit(e):
+           if not name_input.value or not age_input.value:
+               result_text.value = "⚠️ Fill all fields"
+
+           elif not age_input.value.isdigit():
+              result_text.value = "⚠️ Age must be a number"
+
+           elif not 1 <= int(age_input.value) <= 100:
+               result_text.value = "⚠️ Age must be between 1 and 100"
+
+           elif any(q.value is None for q in questions):
+              result_text.value = "⚠️ Answer all questions"
+
+           else:
+            age = int(age_input.value)
+            answers = [int(q.value) for q in questions]
+            score, category = calculate_score(answers)
+
+            cursor.execute(
+                "INSERT INTO users (name, age) VALUES (?, ?)",
+                (name_input.value, age)
+            )
+
+            user_id = cursor.lastrowid
+
+            cursor.execute(
+                "INSERT INTO results (user_id, score, category) VALUES (?, ?, ?)",
+                (user_id, score, category)
+            )
+
+            conn.commit()
+
+            result_text.value = f"🔥 {score} Points | {category}"
+
+            page.update()
+
+
+     page.add(
+        ft.Column(
+            [
+                ft.Text("Create Profile", size=32, weight="bold"),
+                name_input,
+                age_input,
+                *questions,
+                modern_button("Submit Profile", submit),
+                ft.OutlinedButton("Back", on_click=lambda e: render_home()),
+                result_text
+            ],
+            spacing=18
+        )
+    )
+     page.update()
+
+   def render_vote():
+        page.controls.clear()
+
+        cursor.execute("SELECT users.id, users.name FROM users ORDER BY name")
+        users = cursor.fetchall()
+
+        voter_name = ft.TextField(label="Your Name", border_radius=15)
+
+        selected_user = ft.Dropdown(
+           label="Vote For",
+           width=350,
+           border_radius=15,
+           options=[ft.dropdown.Option(str(u[0]), u[1]) for u in users]
+       )
+
+       details_box = ft.Container(
+           visible=False,
+           padding=20,
+           border_radius=20,
+           bgcolor="#111827"
+      )
+      
+
+      
+
+result_text = ft.Text()
+
+   def show_details(e):
           if not selected_user.value:
               return
 
           uid = int(selected_user.value)
 
           cursor.execute("""
-              SELECT users.name, users.age,
-                     results.score, results.category
+              SELECT users.name, users.age, results.score, results.category
               FROM users
               JOIN results ON users.id = results.user_id
               WHERE users.id = ?
-          """, (uid,))
+          """, (int(selected_user.value),))
 
           data = cursor.fetchone()
 
           if data:
-              slogan = get_slogan(data[3])
-              details_box.content = ft.Column(
-                  [
+              details_box.content = ft.Column([
 
-                      ft.Text("👤 Participant Details",
-                               size=20,
-                               weight="bold"),
-                      ft.Text(f"Name: {data[0]}"),
-                      ft.Text(f"Age: {data[1]}"),
-                      ft.Text(f"Score: {data[2]}"),
-                      ft.Text(f"Category: {data[3]}"),
-                      ft.Divider(),
-                      ft.Text(
-                          f'"{slogan}"',
-                          italic=True,
-                          color="cyan"
-                      )
-             ],
-             spacing=8
-          )
+                  ft.Text("👤 Participant Details",size=20,weight="bold"),
+                  ft.Text(f"Name: {data[0]}"),
+                  ft.Text(f"Age: {data[1]}"),
+                  ft.Text(f"Score: {data[2]}"),
+                  ft.Text(f"Personality: {data[3]}"),
+                  ft.Divider(),
+                  ft.Text(get_personality_description(data[3]), color="#67e8f9"),
+                   ft.Text(f'"{get_slogan(data[3])}"', italic=True, color="white")
+               ], spacing=8)
+
           details_box.visible = True
           page.update()
 
-      selected_user.on_change = show_details
+   selected_user.on_change = show_details
 
-      def submit_vote(e):
-        if not voter_name.value or not selected_user.value:
-           result_text.value = "⚠️ Fill all fields"
-           page.update()
-           return
+def submit_vote(e):
+      if not voter_name.value or not selected_user.value:
+          result_text.value = "⚠️ Fill all fields"
 
-        cursor.execute("SELECT COUNT(*) FROM users")
-        count = cursor.fetchone()[0]
+      else:
+               cursor.execute(
+                   "SELECT * FROM votes WHERE voter_name=?",
+                   (voter_name.value,)
+               )
 
-        if count > 1:
-              cursor.execute(
-                  "INSERT INTO votes (voter_name, voted_user_id) VALUES (?, ?)",
-                  (voter_name.value, int(selected_user.value))
-              )
+               if cursor.fetchone():
+                   result_text.value = "⚠️ You already voted!"
+           
+                else:
+                    cursor.execute(
+                        "INSERT INTO votes (voter_name, voted_user_id) VALUES (?, ?)",
+                       (voter_name.value, int(selected_user.value))
+                    )
 
-              cursor.execute(
-                  "UPDATE results SET score = score + 10 WHERE user_id = ?",
-                  (int(selected_user.value),)
-              )
+                    cursor.execute(
+                        "UPDATE results SET score = score + 10 WHERE user_id = ?",
+                        (int(selected_user.value),)
+                    )
 
-              conn.commit()
-              result_text.value = " ✅ Vote submitted! (+10 points)"
-        else:
-              result_text.value = "First user, no vote needed"
+                    conn.commit()
+                    result_text.value = " ✅ Vote submitted! successfully!"
 
-        page.update()
+            page.update()
 
-      page.add(
-       ft.Column([
-              ft.Text(
-                 "🗳 Vote For A Profile",
-                 size=28,
-                 weight="bold"
-          ),
+        page.add(
+            ft.Column(
+                [
+              ft.Text("🗳 Vote For A Profile",size=28,weight="bold"),
               voter_name,
               selected_user,
               details_box,
-              ft.ElevatedButton("Submit Vote", on_click=submit_vote),
+              modern_button("Submit Vote", submit_vote),
               ft.OutlinedButton("Back", on_click=lambda e: render_home()),
               result_text
-          ])
-      )
-      page.update()
+           ],
+           spacing=18
+       )
+    )
+    page.update()
 
    def render_leaderboard():
-       page.controls.clear()
+    page.controls.clear()
 
-       cursor.execute("""
+    cursor.execute("""
        SELECT users.name, results.score, results.category,
-              COUNT(votes.voted_user_id) as votes_count
+              COUNT(votes.voted_user_id)
        FROM users
        JOIN results ON users.id = results.user_id
        LEFT JOIN votes ON users.id = votes.voted_user_id
        GROUP BY users.id
        ORDER BY results.score DESC
-       """)
+    """)
 
-       rows = cursor.fetchall()
+    rows = cursor.fetchall()
 
-       medals = ["🥇", "🥈", "🥉"]
+    medals = ["🥇", "🥈", "🥉"]
 
-       table = ft.ListView(expand=True, spacing=10)
+    table = ft.ListView(expand=True, spacing=12)
 
 
-       if not rows:
-           table.controls.append(ft.Text("No data yet"))
-       else:
-           for i, r in enumerate(rows, start=1):
-               medal = medals[i-1] if i <= 3 else f"#{i}"
-               table.controls.append(
-                   ft.Container(
-                       content=ft.Column([
-                           ft.Row([
-                               ft.Text(medal, size=20),
-                               ft.Text(r[0], weight="bold"),
-                               ft.Text(f"{r[1]} pts")
-                            ], alignment="spaceBetween"),
+    if not rows:
+        table.controls.append(ft.Text("No profiles yet."))
 
-                            ft.Text(
-                                f"{r[2]} | Votes: {r[3]}",
-                                color="cyan"
-                            ),
+    else:
+        for i, r in enumerate(rows, start=1):
+            medal = medals[i-1] if i <= 3 else f"#{i}"
 
-                            ft.Text(
-                                get_slogan(r[2]),
-                                italic=True,
-                                size=13,
-                                color="grey"
-                            )
-                        ]),
-                       padding=10,
-                       border_radius=10,
-                       bgcolor="#1e1e1e"
-                   )
+            table.controls.append(
+                ft.Container(
+                    padding=18,
+                    border_radius=18,
+                    bgcolor="#111827",
+                    content=ft.Column([
+                        ft.Row([
+                            ft.Text(medal, size=24),
+                            ft.Text(r[0], size=18, weight="bold"),
+
+                            ft.Text(f"{r[1]} pts",color="#67e8f9")
+                        ], alignment="spaceBetween"),
+
+                        ft.Text(f"{r[2]} | Votes: {r[3]}",color="#67e8f9"),
+                        ft.Text( get_slogan(r[2]),italic=True, size=13, color="grey")
+                        ])
+                    )
                )
 
-
-       page.add(
-           ft.Column([
-               ft.Text("🏆 Leaderboard", size=28),
+        page.add(
+           ft.Column(
+               [
+                   ft.Text("🏆 Leaderboard", size=28),
                table,
                ft.ElevatedButton("Back", on_click=lambda e: render_home())
            ], expand=True)
-       )
+      )
+    page.update()
 
-   render_home()
+   def render_admin():
+      page.controls.clear()
+
+      cursor.execute("""
+          SELECT users.id, users.name, users.age,
+                 results.score, results.category
+          FROM users
+          JOIN results ON users.id = results.user_id
+          ORDER BY results.score DESC
+      """)
+
+      data = cursor.fetchall()
+
+      admin_list = ft.Column()
+
+      def delete_user(user_id):
+        cursor.execute("DELETE FROM votes WHERE voted_user_id=?", (user_id,))
+        cursor.execute("DELETE FROM results WHERE user_id=?", (user_id,))
+        cursor.execute("DELETE FROM users WHERE id=?", (user_id,))
+        conn.commit()
+        render_admin()
+
+        for user in data:
+            admin_list.controls.append(
+            ft.Container(
+                padding=18,
+                   border_radius=18,
+                   bgcolor="#111827",
+                   content=ft.Column([
+                       ft.Row([
+                           ft.Text(user[1], size=20, weight="bold"),
+
+                           ft.IconButton(
+                               icon=ft.Icons.DELETE,
+                               icon_color="red",
+                               tooltip="Delete User",
+                               on_click=lambda e, uid=user[0]: delete_user(uid)
+                        )
+                    ], alignment="spaceBetween"),
+
+                    ft.Text(f"Age: {user[2]}"),
+                    ft.Text(f"Score: {user[3]}"),
+                    ft.Text(f"Personality: {user[4]}"),
+
+                    ft.Text(
+                        get_personality_description(user[4]),
+                           color="#67e8f9"
+                   )
+               ])
+            )
+        )
+
+        page.add(
+        ft.Column([
+            ft.Text("👑 ADMIN PANEL", size=34, weight="bold"),
+            ft.Text("Manage users and profiles", color="grey"),
+            admin_list,
+            ft.OutlinedButton("Back", on_click=lambda e: render_home())
+        ])
+    )
+
+        page.update()
+
+        render_home()
 
 ft.app(target=main)
